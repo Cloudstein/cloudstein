@@ -1,0 +1,17 @@
+#!/bin/bash
+shellinaboxd -b -t
+service ssh start
+service apache2 start
+service docker.io start
+sleep 5
+chmod 777 /var/run/docker.sock
+while [ -e /bin/bash ];
+do
+    if [ -e /var/run/docker.io.pid ];then
+        dpid=`cat /var/run/docker.io.pid`
+	dockerstate=`ps aux | grep -v 'grep' | grep $dpid | grep '/usr/bin/docker.io'`
+        if [ $? != 0 ]; then  		# service docker.io is not runing.
+	    service docker.io start
+        fi
+    fi
+done

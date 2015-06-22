@@ -1,0 +1,117 @@
+#!/usr/bin/python2.7
+import os, sys
+import commands
+import docker
+
+class entercontainer:
+    def __init__(self):
+        self.c = docker.Client(base_url='unix://var/run/docker.sock', version='1.10', timeout=10)
+        #self.upctn = []
+        self.exitctn = []
+        self.ctnwithno = {}
+        self.imgwithno = {}
+        self.cinfotmp =  "%s   |   %s  |   %s  |   %s    |   %s   |    %s  |   %s  |   %s |"
+
+    def listallexistcontainer(self):
+        print 'Listing all containers.'
+        return self.c.containers()
+
+    def listrunningcontainer(self):
+        return self.c.containers()
+
+    def numberupcontainer(self):
+        self.ctnnumber = 0
+        for ctn in self.listrunningcontainer():
+            self.ctnnumber += 1
+            self.ctnwithno[self.ctnnumber] = ctn
+
+    def bldcntstate(self):
+        self.ctnstatus = {}
+        for item in  self.c.containers(all=True):
+            if item['Status'].find('Up') >= 0:
+                ctnstate = "UP"
+            elif item['Status'].find('Exit') >= 0:
+                ctnstate = "EXIT"
+            self.ctnstatus[item['Id'].encode("utf-8")] = ctnstate
+
+    def entercontainerwithid(self, ctnid):
+        os.system('sudo /usr/local/bin/docker-enter %s' % ctnid)
+
+    def entercontainerwithname(self, ctnname):
+        os.system('sudo /usr/local/bin/docker-enter %s' % ctnname)
+
+    def rundockerconainterbyname(self, imgname):
+        print "Starting docker images %s " % imgname
+        print "At this version, we will only try to run up the images simply like command 'docker run -d [IMGNAME]: '"
+        (rc,ret) = commands.getstatusoutput('sudo /usr/local/bin/docker run -d %s' % imgname)
+        if rc == 0:
+            self.bldcntstate()
+            if self.ctnstatus[ret[-64:]] == 'UP':
+                answer = raw_input('Images is runing up with container ID %s. Do you want to enter it? (y/n)' % ret[-64:])
+                if answer in ['y', 'Y', 'yes', 'YES']:
+                    print "Entering container %s" % ret[-64:]
+                    self.entercontainerwithid(ret[-64:])
+                elif answer in ['n', 'N', 'no', 'NO']:
+                    print 'Bye!'
+            elif self.ctnstatus[ret[-64:]] == "EXIT":
+                print "The image is exited with code 0, you may not able to enter it."
+        else:
+            print 'Seems the images is started failure.'
+
+    def numberallimgs(self):
+        self.imgno = 0
+        for img in self.c.images():
+#            for line in img['RepoTags']:
+            self.imgno += 1
+            self.imgwithno[self.imgno] = img
+
+    def listimgtable(self):
+        self.numberallimgs()
+        print "ID|   RepoTags   | IMAGES ID |    CREATED   |   VIRTUAL SIZE "
+        for l in range(1, self.imgno + 1):
+            print '%s |   %s   |   %s   |    %s   |    %s   |' % (l, self.imgwithno[l]['RepoTags'], self.imgwithno[l]['Id'][:12], self.imgwithno[l]['Created'], self.imgwithno[l]['VirtualSize'])
+
+    def chkctnstatus(self, ctnid):
+        pass
+
+    def asktostartimg(self):
+        print "Below are the existing images, you can choose one to run up and enter it."
+        self.listimgtable()
+        yesno = raw_input("Do you want to start one of them? (y/n):")
+        if yesno in ['y', 'Y', 'yes', 'YES']:
+            imgno = int(raw_input('Please input the sequence number of the image to run up.: [1 - %i]' % self.imgno))
+            if imgno > self.imgno:
+                print 'No such images!'
+            else:
+                print 'Start up docker images %s' % self.imgwithno[imgno]['RepoTags']
+                self.rundockerconainterbyname(self.imgwithno[imgno]['RepoTags'][0])
+
+    def enterpoint(self):
+        self.numberupcontainer()
+        if len(self.ctnwithno) == 0:
+            print "There is no container running."
+            self.asktostartimg()
+        elif len(self.ctnwithno) == 1:
+            yesno = raw_input("There is one container '%s' running. Do you want to enter it? (y/n):" % self.ctnwithno[1]['Names'][0])
+            if yesno in ['y', 'Y', 'yes', 'YES']:
+                print "Entering container %s " % self.ctnwithno[1]['Names'][0]
+                self.entercontainerwithname(self.ctnwithno[1]['Names'][0])
+            elif yesno in ['n', 'N', 'no', 'NO']:
+                self.asktostartimg()
+        else:
+	    print "ID  |   CONTAINER_ID  |         IMAGE         |    COMMAND    |   CREATED      |    STATUS     |   PORTS   |   NAMES"
+            for item in self.ctnwithno:
+                print self.cinfotmp % (item, self.ctnwithno[item]['Id'], self.ctnwithno[item]['Image'],self.ctnwithno[item]['Command'],self.ctnwithno[item]['Created'], self.ctnwithno[item]['Status'], self.ctnwithno[item]['Ports'], self.ctnwithno[item]['Names'])
+            yesno = raw_input("Above containers are running, do you want to enter one of them? (y/n):")
+            if yesno in ['y', 'Y', 'yes', 'YES']:
+                seqctnno = int(raw_input("Please input the sequence number to enter: "))
+                self.entercontainerwithname(self.ctnwithno[seqctnno]['Names'][0])
+            if yesno in ['n', 'N', 'no', 'NO']:
+                self.asktostartimg()
+
+
+if __name__ == "__main__":
+    e = entercontainer()
+    #e.listimgtable()
+    e.enterpoint()
+

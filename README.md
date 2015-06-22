@@ -13,7 +13,7 @@ cd ../usercontainer
 
 docker images # should see two images "cloudstein" & "cs"
 
-#need a mysql server
+need a mysql server
 docker run --name cs-mysql -e MYSQL_ROOT_PASSWORD=hello123 -d mysql
 
 docker run --privileged --name cs --link cs-mysql:mysql -e GITHUB_API_CLIENT_ID=< GITHUB CLIENT ID> -e GITHUB_API_CLIENT_SECRET=<GITHUB CLIENT API SECRET> -p 80:80 -d cloudstein

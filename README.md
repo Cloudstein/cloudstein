@@ -6,7 +6,7 @@ Need to request a API key and secret from Github
 git clone https://github.com/cloudstein
 
 cd cloudstein
-cd dockergui
+cd dockergui_appContainer_v5
 ./build
 
 cd ../usercontainer

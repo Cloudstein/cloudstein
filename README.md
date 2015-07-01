@@ -5,14 +5,13 @@ Need to request a API key and secret from Github
 
 git clone https://github.com/cloudstein
 
-cd cloudstein
-cd dockergui_appContainer_v5
+cd cloudstein/dockergui_appContainer_v5
 ./build
 
 cd ../usercontainer
 ./build
 
-docker images # should see two images "cloudstein" & "cs"
+docker images # should see two images "cloudstein" & "usercontainer"
 
 need a mysql server
 
